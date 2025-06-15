@@ -4,17 +4,19 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:zstandard/zstandard.dart';
-import 'card_info.dart';
+import 'package:sheba_app/models/card_info.dart';
+import 'package:sheba_app/services/token_manager.dart'; // Import TokenManager
 
 class ApiService {
   static const String baseUrl = 'https://khanesarmaye.com/api';
   static const String cardToShebaEndpoint = '/sheba/get/card-to-sheba/';
-  
-  // توکن احراز هویت - به‌روزرسانی شده مطابق با کد پایتون
-  static const String authToken = '66920|X0hDbu7drAftvYBMdRVX7tT3BKCFk5iIPcx1LZuT9ffa4d4d';
+  static const String cardToAccountEndpoint = '/sheba/get/card-to-account/'; // New endpoint
+  static const String accountToShebaEndpoint = '/sheba/get/account-to-sheba/'; // New endpoint
+  static const String shebaInfoEndpoint = '/sheba/get/sheba-info/'; // New endpoint
 
   // هدرهای مورد نیاز برای درخواست - به‌روزرسانی شده مطابق با کد پایتون
-  static Map<String, String> getHeaders() {
+  static Future<Map<String, String>> getHeaders() async {
+    final token = await TokenManager().getApiToken(); // Fetch token dynamically
     return {
       'Accept': '*/*',
       'Accept-Encoding': 'gzip, deflate, br, zstd',
@@ -29,12 +31,14 @@ class ApiService {
       'Sec-Fetch-Mode': 'cors',
       'Sec-Fetch-Site': 'same-origin',
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36',
-      'Authorization': 'Bearer $authToken',
+      'Authorization': 'Bearer $token', // Use fetched token
     };
   }
 
   // کوکی‌های مورد نیاز - به‌روزرسانی شده مطابق با کد پایتون
   static Map<String, String> getCookies() {
+    // Note: user_auth_token in cookies might also need to be dynamic if it's tied to the API token
+    // For now, keeping it as is, but it's a potential area for improvement.
     return {
       '_gcl_au': '1.1.1338617498.1747861749',
       'analytics_campaign': '{%22source%22:%22google%22%2C%22medium%22:%22organic%22}',
@@ -43,7 +47,7 @@ class ApiService {
       'yektanet_session_last_activity': '5/22/2025',
       '_yngt_iframe': '1',
       '_yngt': '4629f41c-ba91-4a6c-a96b-d19098843c15',
-      'user_auth_token': authToken,
+      'user_auth_token': 'YOUR_DYNAMIC_AUTH_TOKEN_HERE', // This should also be dynamic if it's the same as API token
       '_gid': 'GA1.2.1986953517.1747861892',
       '_ga': 'GA1.2.1731811901.1747861749',
       '_gat_UA-106223998-1': '1',
@@ -110,7 +114,7 @@ class ApiService {
   // استعلام شماره شبا با شماره کارت
   static Future<CardInfo> getCardInfo(String cardNumber) async {
     final url = Uri.parse('$baseUrl$cardToShebaEndpoint');
-    final headers = getHeaders();
+    final headers = await getHeaders(); // Await the async getHeaders()
     
     // اضافه کردن کوکی‌ها به هدرها
     headers['Cookie'] = _cookiesToString(getCookies());
@@ -137,4 +141,96 @@ class ApiService {
       throw Exception('خطا در ارتباط با سرور: $e');
     }
   }
+
+  // استعلام شماره حساب بر اساس شماره کارت
+  static Future<CardInfo> getAccountInfoFromCard(String cardNumber) async {
+    final url = Uri.parse('$baseUrl$cardToAccountEndpoint');
+    final headers = await getHeaders();
+    headers['Cookie'] = _cookiesToString(getCookies());
+
+    try {
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: jsonEncode({'cardNumber': cardNumber}),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = await decodeResponse(response);
+        return CardInfo(
+          cardNumber: cardNumber,
+          sheba: jsonData['iban'] ?? '', // Assuming API returns IBAN even for account inquiry
+          ownerName: jsonData['owner'] ?? '',
+          bankName: jsonData['bank'] ?? '',
+          accountNumber: jsonData['accountNumber'] ?? '', // Assuming API returns accountNumber
+        );
+      } else {
+        throw Exception('خطا در دریافت اطلاعات حساب از کارت: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('خطا در ارتباط با سرور برای استعلام حساب از کارت: $e');
+    }
+  }
+
+  // استعلام شماره شبا بر اساس شماره حساب
+  static Future<CardInfo> getShebaInfoFromAccount(String accountNumber) async {
+    final url = Uri.parse('$baseUrl$accountToShebaEndpoint');
+    final headers = await getHeaders();
+    headers['Cookie'] = _cookiesToString(getCookies());
+
+    try {
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: jsonEncode({'accountNumber': accountNumber}),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = await decodeResponse(response);
+        return CardInfo(
+          cardNumber: jsonData['cardNumber'] ?? '', // Assuming API returns cardNumber
+          sheba: jsonData['iban'] ?? '',
+          ownerName: jsonData['owner'] ?? '',
+          bankName: jsonData['bank'] ?? '',
+          accountNumber: accountNumber,
+        );
+      } else {
+        throw Exception('خطا در دریافت اطلاعات شبا از حساب: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('خطا در ارتباط با سرور برای استعلام شبا از حساب: $e');
+    }
+  }
+
+  // استعلام اطلاعات شبا (بر اساس خود شبا)
+  static Future<CardInfo> getShebaInfo(String shebaNumber) async {
+    final url = Uri.parse('$baseUrl$shebaInfoEndpoint');
+    final headers = await getHeaders();
+    headers['Cookie'] = _cookiesToString(getCookies());
+
+    try {
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: jsonEncode({'shebaNumber': shebaNumber}),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = await decodeResponse(response);
+        return CardInfo(
+          cardNumber: jsonData['cardNumber'] ?? '', // Assuming API returns cardNumber
+          sheba: shebaNumber,
+          ownerName: jsonData['owner'] ?? '',
+          bankName: jsonData['bank'] ?? '',
+          accountNumber: jsonData['accountNumber'] ?? '', // Assuming API returns accountNumber
+        );
+      } else {
+        throw Exception('خطا در دریافت اطلاعات شبا: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('خطا در ارتباط با سرور برای استعلام اطلاعات شبا: $e');
+    }
+  }
 }
+
+

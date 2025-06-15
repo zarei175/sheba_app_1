@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'history_provider.dart';
-import 'home_screen.dart';
+import 'package:sheba_app/providers/history_provider.dart';
+import 'package:sheba_app/screens/home_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'app_theme.dart';
+import 'package:sheba_app/theme/app_theme.dart';
+import 'package:sheba_app/services/token_manager.dart'; // Import TokenManager
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await TokenManager().initialize();
+
   runApp(
     ChangeNotifierProvider(
       create: (context) => HistoryProvider(),
@@ -36,3 +40,5 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+
