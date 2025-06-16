@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:sheba_app/models/card_info.dart';
 import 'package:sheba_app/models/history_item.dart';
 import 'package:sheba_app/database_helper.dart';
 
@@ -33,7 +32,5 @@ class HistoryProvider with ChangeNotifier {
     _history = [];
     notifyListeners();
   }
-
-
 }
 

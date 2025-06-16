@@ -94,14 +94,14 @@ class _BatchInquiryScreenState extends State<BatchInquiryScreen> with TickerProv
       if (_filePath == null) return;
 
       final bytes = File(_filePath!).readAsBytesSync();
-      final excel = excel_package.Excel.decodeBytes(bytes);
+      final excel = Excel.decodeBytes(bytes);
 
       for (var table in excel.tables.keys) {
         final sheet = excel.tables[table]!;
         
         // فرض می‌کنیم شماره کارت‌ها در ستون اول قرار دارند (از سطر دوم به بعد)
         for (var row = 1; row < sheet.maxRows; row++) {
-          final cell = sheet.cell(excel_package.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row));
+          final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row));
           if (cell.value != null) {
             String cardNumber = cell.value.toString().trim();
             // حذف خط تیره‌ها و فاصله‌ها
@@ -167,11 +167,11 @@ class _BatchInquiryScreenState extends State<BatchInquiryScreen> with TickerProv
         return;
       }
 
-      final excel = excel_package.Excel.createExcel();
+      final excel = Excel.createExcel();
       final sheet = excel['نتایج استعلام'];
 
       // Style for header
-      final headerStyle = excel_package.CellStyle(
+      final headerStyle = CellStyle(
         bold: true,
         backgroundColorHex: '#4CAF50',
         fontColorHex: '#FFFFFF',
@@ -180,22 +180,22 @@ class _BatchInquiryScreenState extends State<BatchInquiryScreen> with TickerProv
       // ایجاد هدر
       final headers = ['شماره کارت', 'نام بانک', 'شماره شبا', 'نام صاحب حساب', 'وضعیت'];
       for (int i = 0; i < headers.length; i++) {
-        final cell = sheet.cell(excel_package.CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
+        final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
         cell.value = headers[i];
         cell.cellStyle = headerStyle;
       }
 
       // پر کردن داده‌ها
       for (int i = 0; i < _cardNumbers.length; i++) {
-        sheet.cell(excel_package.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 1)).value = _cardNumbers[i];
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 1)).value = _cardNumbers[i];
         
         if (_results[i] != null) {
-          sheet.cell(excel_package.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 1)).value = _results[i]!.bankName;
-          sheet.cell(excel_package.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: i + 1)).value = _results[i]!.sheba;
-          sheet.cell(excel_package.CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: i + 1)).value = _results[i]!.ownerName;
-          sheet.cell(excel_package.CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: i + 1)).value = 'موفق';
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 1)).value = _results[i]!.bankName;
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: i + 1)).value = _results[i]!.sheba;
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: i + 1)).value = _results[i]!.ownerName;
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: i + 1)).value = 'موفق';
         } else {
-          sheet.cell(excel_package.CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: i + 1)).value = 'خطا: ${_errors[i]}';
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: i + 1)).value = 'خطا: ${_errors[i]}';
         }
       }
 

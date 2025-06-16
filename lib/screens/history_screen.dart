@@ -74,7 +74,7 @@ class HistoryScreen extends StatelessWidget {
                 item: item,
                 onDelete: () {
                   historyProvider.deleteHistoryItem(item.id!);
-                }, historyItem: null,
+                },
               );
             },
           );

@@ -8,7 +8,7 @@ class HistoryItemCard extends StatelessWidget {
 
   const HistoryItemCard({
     super.key,
-    required this.historyItem, required HistoryItem item,
+    required this.historyItem,
   });
 
   @override
